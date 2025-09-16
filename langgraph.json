@@ -1,0 +1,15 @@
+{
+    "dockerfile_lines": [],
+    "graphs": {
+      "command": "./agents/handoff_tools.py:graph",
+      "command-send": "./agents/command_send.py:graph",
+      "subagents_as_tools": "./agents/subagents_as_tools.py:graph",
+      "invoice_agent": "./agents/invoice_agent.py:graph",
+      "music_agent": "./agents/music_agent.py:graph"
+    },
+    "env": ".env",
+    "python_version": "3.11",
+    "dependencies": [
+      "."
+    ]
+  }

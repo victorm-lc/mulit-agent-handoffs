@@ -15,11 +15,11 @@ This repository demonstrates the two main multi-agent patterns from LangChain's 
 
 #### **Command + Send** (`command_send.py`)
 - **Decentralized control**: Agents transfer control using structured routing
-- Uses Command + Send objects for flexible state management
+- Uses Command + Send objects for flexible state management, and control over context being passed from agent to agent.
 
 #### **Handoff Tools** (`handoff_tools.py`) 
 - **Decentralized control**: Agents transfer control using handoff tools
-- Tools return Command objects for explicit navigation control
+- Tools return Command objects for explicit navigation control, handing off control to another agent.
 
 **Use handoffs when**: Want agents to interact directly with users, need complex multi-domain conversations
 

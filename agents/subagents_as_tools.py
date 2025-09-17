@@ -1,29 +1,38 @@
 """
-SUBAGENTS AS TOOLS PATTERN (ASYNC/PARALLEL)
+TOOL CALLING PATTERN (LangChain Multi-Agent)
 
-This pattern implements the "Supervisor (tool-calling)" architecture from LangGraph docs
-with async execution to enable parallel subagent processing.
+This implements the "Tool Calling" pattern from LangChain's multi-agent documentation:
+https://docs.langchain.com/oss/python/langchain/multi-agent.md#tool-calling
+
+In tool calling, one agent (the "controller") treats other agents as tools to be invoked when needed.
+The controller manages orchestration, while tool agents perform specific tasks and return results.
+
+Flow:
+1. The controller receives input and decides which tool (subagent) to call
+2. The tool agent runs its task based on the controller's instructions  
+3. The tool agent returns results to the controller
+4. The controller decides the next step or finishes
 
 Key characteristics:
-- Subagents are wrapped as @tool decorated async functions
-- Supervisor uses standard tool-calling to invoke subagents
-- Multiple subagents can execute in parallel when called simultaneously
-- Subagents return results as strings after async execution
-- Simple, clean handoff pattern with parallel processing capability
+- Centralized control: all routing passes through the calling agent
+- Subagents are wrapped as @tool decorated functions
+- Tool agents don't talk to the user directly - they just run tasks and return results
+- Controller manages all orchestration and user interaction
+- Async execution enables parallel processing when multiple tools are called
 
 Benefits:
+- Centralized control over workflow
 - Easy to understand and implement
 - Standard LangGraph tool execution flow
-- Async execution enables parallel processing of multiple subagents
-- Maintains predictable behavior while improving performance
-- Good for supervisor-worker patterns where subagents complete discrete tasks
+- Good for task orchestration and structured workflows
+- Parallel execution improves performance
 
-When to use:
-- When you want simple handoffs with parallel execution capability
-- When subagents should complete their work and return control
-- When you prefer standard tool-calling patterns over Command objects
-- When you need multiple subagents to work simultaneously
-- For supervisor-worker architectures that benefit from parallelism
+When to use (from LangChain docs):
+- Need centralized control over workflow? ✅ Yes
+- Want agents to interact directly with the user? ❌ No  
+- Complex, human-like conversation between specialists? ❌ Limited
+
+Perfect for: Task orchestration, structured workflows, supervisor-worker patterns
 """
 
 from langchain_core.messages import SystemMessage
@@ -48,9 +57,11 @@ class SupervisorState(TypedDict):
 
 model = ChatOpenAI(model="gpt-4o")
 
-# ASYNC SUBAGENT TOOL DEFINITIONS
+# TOOL CALLING PATTERN IMPLEMENTATION
+# From LangChain docs: "In tool calling, one agent (the 'controller') treats other agents as tools"
 # These functions are decorated with @tool and use async execution to enable parallel processing.
-# When multiple tools are called simultaneously, they can execute in parallel.
+# The controller (supervisor) manages orchestration, while tool agents perform specific tasks and return results.
+# Key: Tool agents don't talk to the user directly - they just run their task and return results.
 @tool
 async def invoice_agent(task: str, customer_id: Annotated[int, InjectedState("customer_id")]):
     """Handle invoice-related queries by processing customer requests about past purchases, billing information, and invoice details.

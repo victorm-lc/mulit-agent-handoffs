@@ -1,27 +1,41 @@
 """
-COMMAND + SEND PATTERN
+HANDOFFS PATTERN (LangChain Multi-Agent)
 
-This pattern implements a more advanced handoff using Command and Send objects.
-The supervisor uses structured output to decide routing and Send objects to 
-pass custom state to different agents.
+This implements the "Handoffs" pattern from LangChain's multi-agent documentation:
+https://docs.langchain.com/oss/python/langchain/multi-agent.md#handoffs
 
-Key characteristics:
+In handoffs, agents can directly pass control to each other. The "active" agent changes, 
+and the user interacts with whichever agent currently has control.
+
+Flow:
+1. The current agent decides it needs help from another agent
+2. It passes control (and state) to the next agent  
+3. The new agent interacts directly with the user until it decides to hand off again or finish
+
+This implementation uses Command + Send objects for advanced handoff control:
 - Uses structured output (Pydantic models) for routing decisions
-- Command + Send pattern for flexible agent invocation
-- Custom state passed to each agent
+- Command + Send pattern allows passing custom state to different agents
 - More explicit control over what data each agent receives
 
-Benefits:
-- Structured decision making for routing
-- Flexible state management per agent
-- Can send different data to different agents
+Key characteristics:
+- Decentralized control: agents can change who is active
+- Agents can interact directly with the user
+- Complex, human-like conversation between specialists
 - **MAIN BENEFIT: Control context sent to agents** - agents receive only focused context instead of full conversation history
 
-When to use:
-- When you need structured routing decisions
-- When different agents need different input data
-- When you want explicit control over agent state
-- For more complex supervisor logic
+Benefits:
+- Agents interact directly with users
+- Support for complex, multi-domain conversations
+- Specialist takeover capabilities
+- Flexible state management per agent
+- Structured decision making for routing
+
+When to use (from LangChain docs):
+- Need centralized control over workflow? ❌ No
+- Want agents to interact directly with the user? ✅ Yes
+- Complex, human-like conversation between specialists? ✅ Strong
+
+Perfect for: Multi-domain conversations, specialist takeover, complex agent interactions
 """
 
 from pydantic import BaseModel, Field
@@ -76,17 +90,20 @@ from langgraph.types import Command, Send
 
 def supervisor(state: State, config: RunnableConfig) -> Command[Literal["music_catalog_subagent", "invoice_information_subagent", END]]:
     """
-    Supervisor that uses structured output and Send objects for agent routing.
+    HANDOFFS PATTERN: Supervisor that decides which agent should have control.
     
-    This demonstrates the Command + Send pattern where:
-    1. LLM returns structured output (Step object) instead of free text
-    2. Supervisor creates custom state for each agent using Send objects
-    3. Different agents can receive different input data
-    4. More explicit control over routing and state management
+    From LangChain docs: "The current agent decides to transfer control to another agent. 
+    The active agent changes, and the user may continue interacting directly with the new agent."
+    
+    This demonstrates the Command + Send pattern for handoffs where:
+    1. Current agent (supervisor) decides it needs help from another agent
+    2. It passes control (and state) to the next agent using Command + Send
+    3. The new agent will interact directly with the user until handoff or finish
+    4. Different agents can receive different input data for focused context
     
     KEY BENEFIT: Instead of passing the full conversation history to agents,
     Send allows us to pass only the specific context each agent needs (result.context).
-    This gives agents focused, clean input rather than overwhelming conversation history.
+    This enables decentralized control where agents can change who is active.
     """
     # Get structured routing decision from the LLM
     result = router_model.invoke([SystemMessage(content=supervisor_prompt)] + state["messages"])

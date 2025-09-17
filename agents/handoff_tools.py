@@ -1,26 +1,43 @@
 """
-HANDOFFS AS TOOLS PATTERN (COMMAND-BASED)
+HANDOFFS PATTERN - TOOLS IMPLEMENTATION (LangChain Multi-Agent)
 
-This pattern implements "Handoffs as tools" from LangGraph docs using Command objects.
-Tools return Command objects that specify navigation to different agent nodes.
+This implements the "Handoffs" pattern from LangChain's multi-agent documentation:
+https://docs.langchain.com/oss/python/langchain/multi-agent.md#handoffs
+
+In handoffs, agents can directly pass control to each other. The "active" agent changes, 
+and the user interacts with whichever agent currently has control.
+
+Flow:
+1. The current agent decides it needs help from another agent
+2. It passes control (and state) to the next agent  
+3. The new agent interacts directly with the user until it decides to hand off again or finish
+
+This specific implementation uses "handoffs as tools" - a LangGraph pattern where:
+- Handoff tools return Command objects that specify navigation to different agent nodes
+- Tools can update state and navigate simultaneously 
+- Each agent exists as a separate node in the graph (not just tool calls)
 
 Key characteristics:
+- Decentralized control: agents can change who is active
+- Agents can interact directly with the user
+- Complex, human-like conversation between specialists
 - Tools return Command objects instead of simple strings
 - Command objects specify destination nodes and state updates
-- Allows for complex routing and state management
-- Supports navigation to different parts of the graph
 
 Benefits:
+- Agents interact directly with users
+- Support for complex, multi-domain conversations  
+- Specialist takeover capabilities
 - More flexible routing than simple tool returns
-- Can update state and navigate simultaneously
-- Supports complex multi-agent workflows
-- Native LangGraph handoff pattern
+- Native LangGraph handoff pattern with explicit control
 
-When to use:
-- When you need explicit control over agent navigation
-- When agents are separate nodes in the graph (not just tool calls)
-- When you want to update state during handoffs
-- For more complex multi-agent architectures
+When to use (from LangChain docs):
+- Need centralized control over workflow? ❌ No
+- Want agents to interact directly with the user? ✅ Yes
+- Complex, human-like conversation between specialists? ✅ Strong
+
+Perfect for: Multi-domain conversations, specialist takeover, explicit agent navigation control
+Note: You can mix patterns - use handoffs for agent switching, and have each agent call subagents as tools.
 """
 
 from langchain_core.runnables import RunnableConfig
@@ -50,9 +67,11 @@ class State(InputState):
 
 model = ChatOpenAI(model="o3-mini")
 
-# HANDOFF TOOLS
+# HANDOFFS PATTERN - TOOLS IMPLEMENTATION  
+# From LangChain docs: "Agents can directly pass control to each other. The 'active' agent changes,
+# and the user interacts with whichever agent currently has control."
 # These tools demonstrate the "handoffs as tools" pattern where tools return Command objects
-# instead of simple strings. This allows for explicit navigation to different agent nodes.
+# instead of simple strings. This enables decentralized control and agent-to-agent navigation.
 
 @tool("transfer-to-invoice-agent")
 def transfer_to_invoice_agent(
@@ -63,11 +82,15 @@ def transfer_to_invoice_agent(
 ) -> Command:
     """Transfer control to the invoice agent for invoice-related questions.
     
-    This demonstrates the handoff pattern where:
-    1. Tool receives current state and tool call context
-    2. Creates a ToolMessage to represent the handoff in message history
-    3. Returns Command object specifying destination and state update
-    4. LangGraph handles the actual navigation to the target node
+    HANDOFFS PATTERN: This demonstrates how the current agent passes control to another agent.
+    From LangChain docs: "The current agent decides to transfer control to another agent.
+    The active agent changes, and the user may continue interacting directly with the new agent."
+    
+    Flow:
+    1. Current agent (via tool) decides it needs help from invoice agent
+    2. Tool receives current state and creates handoff representation  
+    3. Returns Command object that passes control (and state) to target agent
+    4. Invoice agent becomes active and can interact directly with user
     
     Args:
         state: Current graph state (injected automatically)
